@@ -123,6 +123,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def db_init_middleware(request, call_next):
+    try:
+        from backend.app.database import ensure_initialized
+    except ImportError:
+        from app.database import ensure_initialized
+    await ensure_initialized()
+    return await call_next(request)
+
 # Include Routers
 app.include_router(auth.router)
 app.include_router(playlists.router)

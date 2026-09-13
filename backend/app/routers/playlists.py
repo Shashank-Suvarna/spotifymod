@@ -5,18 +5,32 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 
-from backend.app.database import get_db
-from backend.app.models import Playlist, Track, PlaylistTrack, DownloadJob, JobStatus, User
-from backend.app.schemas import (
-    PlaylistResponse,
-    PlaylistDetailResponse,
-    TrackResponse,
-    PastePlaylistRequest,
-    BulkDownloadRequest
-)
-from backend.app.services.spotify_service import spotify_service
-from backend.app.services.queue_engine import queue_engine
-from backend.app.services.ws_manager import ws_manager
+try:
+    from backend.app.database import get_db
+    from backend.app.models import Playlist, Track, PlaylistTrack, DownloadJob, JobStatus, User
+    from backend.app.schemas import (
+        PlaylistResponse,
+        PlaylistDetailResponse,
+        TrackResponse,
+        PastePlaylistRequest,
+        BulkDownloadRequest
+    )
+    from backend.app.services.spotify_service import spotify_service
+    from backend.app.services.queue_engine import queue_engine
+    from backend.app.services.ws_manager import ws_manager
+except ImportError:
+    from app.database import get_db
+    from app.models import Playlist, Track, PlaylistTrack, DownloadJob, JobStatus, User
+    from app.schemas import (
+        PlaylistResponse,
+        PlaylistDetailResponse,
+        TrackResponse,
+        PastePlaylistRequest,
+        BulkDownloadRequest
+    )
+    from app.services.spotify_service import spotify_service
+    from app.services.queue_engine import queue_engine
+    from app.services.ws_manager import ws_manager
 
 logger = logging.getLogger(__name__)
 
@@ -109,89 +123,98 @@ async def import_playlist_url(payload: PastePlaylistRequest, db: AsyncSession = 
     if not playlist_id_str:
         raise HTTPException(status_code=400, detail="Invalid Spotify playlist URL or ID")
 
-    # Fetch user token if available
-    user_stmt = select(User).where(User.is_spotify_connected == True).order_by(User.created_at.desc()).limit(1)
-    user_res = await db.execute(user_stmt)
-    user = user_res.scalar_one_or_none()
-    access_token = user.access_token if user else None
+    try:
+        # Fetch user token if available
+        user_stmt = select(User).where(User.is_spotify_connected == True).order_by(User.created_at.desc()).limit(1)
+        user_res = await db.execute(user_stmt)
+        user = user_res.scalar_one_or_none()
+        access_token = user.access_token if user else None
 
-    # Fetch paginated metadata and tracks
-    p_info, track_items = await spotify_service.get_playlist_metadata_and_tracks(
-        playlist_id=playlist_id_str,
-        access_token=access_token
-    )
-
-    # Check if playlist already exists
-    p_stmt = select(Playlist).where(Playlist.spotify_id == playlist_id_str)
-    p_res = await db.execute(p_stmt)
-    playlist = p_res.scalar_one_or_none()
-
-    if not playlist:
-        playlist = Playlist(
-            spotify_id=playlist_id_str,
-            title=p_info["title"],
-            description=p_info.get("description", ""),
-            owner_name=p_info.get("owner_name", "Spotify User"),
-            artwork_url=p_info.get("artwork_url"),
-            total_tracks=len(track_items),
-            total_duration_ms=sum(t.get("duration_ms", 180000) for t in track_items)
+        # Fetch paginated metadata and tracks
+        p_info, track_items = await spotify_service.get_playlist_metadata_and_tracks(
+            playlist_id=playlist_id_str,
+            access_token=access_token
         )
-        db.add(playlist)
-        await db.flush()
-    else:
-        playlist.title = p_info["title"]
-        playlist.description = p_info.get("description", "")
-        playlist.artwork_url = p_info.get("artwork_url") or playlist.artwork_url
-        playlist.total_tracks = len(track_items)
-        playlist.total_duration_ms = sum(t.get("duration_ms", 180000) for t in track_items)
 
-    # Clean existing tracks assoc for this playlist if updating
-    await db.execute(delete(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist.id))
+        # Check if playlist already exists
+        p_stmt = select(Playlist).where(Playlist.spotify_id == playlist_id_str)
+        p_res = await db.execute(p_stmt)
+        playlist = p_res.scalar_one_or_none()
 
-    # Process and link tracks
-    saved_tracks = []
-    for idx, t_meta in enumerate(track_items):
-        spot_id = t_meta.get("spotify_id")
-        t_obj = None
-        if spot_id:
-            t_res = await db.execute(select(Track).where(Track.spotify_id == spot_id))
-            t_obj = t_res.scalar_one_or_none()
-
-        if not t_obj:
-            t_obj = Track(
-                spotify_id=spot_id,
-                isrc=t_meta.get("isrc"),
-                title=t_meta["title"],
-                artist_name=t_meta["artist_name"],
-                album_name=t_meta.get("album_name", "Single"),
-                duration_ms=t_meta.get("duration_ms", 180000),
-                artwork_url=t_meta.get("artwork_url") or playlist.artwork_url,
-                preview_url=t_meta.get("preview_url"),
-                track_number=idx + 1
+        if not playlist:
+            playlist = Playlist(
+                spotify_id=playlist_id_str,
+                title=p_info["title"],
+                description=p_info.get("description", ""),
+                owner_name=p_info.get("owner_name", "Spotify User"),
+                artwork_url=p_info.get("artwork_url"),
+                total_tracks=len(track_items),
+                total_duration_ms=sum(t.get("duration_ms", 180000) for t in track_items)
             )
-            db.add(t_obj)
+            db.add(playlist)
             await db.flush()
+        else:
+            playlist.title = p_info["title"]
+            playlist.description = p_info.get("description", "")
+            playlist.artwork_url = p_info.get("artwork_url") or playlist.artwork_url
+            playlist.total_tracks = len(track_items)
+            playlist.total_duration_ms = sum(t.get("duration_ms", 180000) for t in track_items)
 
-        # Link in playlist_tracks
-        pt = PlaylistTrack(
-            playlist_id=playlist.id,
-            track_id=t_obj.id,
-            order_index=idx
-        )
-        db.add(pt)
-        saved_tracks.append(t_obj)
+        # Clean existing tracks assoc for this playlist if updating
+        await db.execute(delete(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist.id))
 
-    await db.commit()
-    await db.refresh(playlist)
+        # Process and link tracks
+        saved_tracks = []
+        for idx, t_meta in enumerate(track_items):
+            spot_id = t_meta.get("spotify_id")
+            t_obj = None
+            if spot_id:
+                t_res = await db.execute(select(Track).where(Track.spotify_id == spot_id))
+                t_obj = t_res.scalar_one_or_none()
 
-    # Broadcast event
-    await ws_manager.broadcast("PLAYLIST_IMPORTED", {
-        "playlist_id": playlist.id,
-        "title": playlist.title,
-        "track_count": len(saved_tracks)
-    })
+            if not t_obj:
+                t_obj = Track(
+                    spotify_id=spot_id,
+                    isrc=t_meta.get("isrc"),
+                    title=t_meta["title"],
+                    artist_name=t_meta["artist_name"],
+                    album_name=t_meta.get("album_name", "Single"),
+                    duration_ms=t_meta.get("duration_ms", 180000),
+                    artwork_url=t_meta.get("artwork_url") or playlist.artwork_url,
+                    preview_url=t_meta.get("preview_url"),
+                    track_number=idx + 1
+                )
+                db.add(t_obj)
+                await db.flush()
 
-    return await get_playlist_details(playlist.id, db)
+            # Link in playlist_tracks
+            pt = PlaylistTrack(
+                playlist_id=playlist.id,
+                track_id=t_obj.id,
+                order_index=idx
+            )
+            db.add(pt)
+            saved_tracks.append(t_obj)
+
+        await db.commit()
+        await db.refresh(playlist)
+
+        # Broadcast event
+        try:
+            await ws_manager.broadcast("PLAYLIST_IMPORTED", {
+                "playlist_id": playlist.id,
+                "title": playlist.title,
+                "track_count": len(saved_tracks)
+            })
+        except Exception as ws_err:
+            logger.warning(f"WebSocket broadcast failed (ignoring in serverless): {ws_err}")
+
+        return await get_playlist_details(playlist.id, db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Failed to import playlist: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to import playlist: {str(e)}")
 
 @router.post("/{playlist_id}/enqueue")
 async def enqueue_playlist_tracks(

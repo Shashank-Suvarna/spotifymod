@@ -1,6 +1,9 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
-from backend.app.config import settings
+try:
+    from backend.app.config import settings
+except ImportError:
+    from app.config import settings
 
 # If postgresql URL starts with postgres://, convert to postgresql+asyncpg://
 db_url = settings.DATABASE_URL
@@ -24,7 +27,21 @@ AsyncSessionLocal = async_sessionmaker(
 
 Base = declarative_base()
 
+_db_initialized = False
+
+async def ensure_initialized():
+    global _db_initialized
+    if not _db_initialized:
+        try:
+            import backend.app.models  # noqa
+        except ImportError:
+            import app.models  # noqa
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        _db_initialized = True
+
 async def get_db():
+    await ensure_initialized()
     async with AsyncSessionLocal() as session:
         try:
             yield session
@@ -32,5 +49,4 @@ async def get_db():
             await session.close()
 
 async def init_db():
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    await ensure_initialized()
