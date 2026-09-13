@@ -7,7 +7,12 @@ import {
   SearchResult,
 } from "@/types";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_BASE !== undefined
+    ? process.env.NEXT_PUBLIC_API_BASE
+    : typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? ""
+    : "http://localhost:8000";
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${endpoint}`, {
@@ -27,7 +32,14 @@ async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T>
 export const api = {
   getStreamUrl: (trackId: string) => `${API_BASE}/api/tracks/${trackId}/stream`,
   getWsUrl: () => {
-    return API_BASE.replace(/^http/, "ws") + "/ws";
+    if (API_BASE && API_BASE.startsWith("http")) {
+      return API_BASE.replace(/^http/, "ws") + "/ws";
+    }
+    if (typeof window !== "undefined") {
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      return `${proto}//${window.location.host}/ws`;
+    }
+    return "ws://localhost:8000/ws";
   },
 
   // Playlists
