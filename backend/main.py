@@ -3,11 +3,12 @@ import os
 
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(backend_dir)
-for p in [backend_dir, root_dir]:
-    if p not in sys.path:
-        sys.path.insert(0, p)
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
-try:
-    from backend.app.main import app
-except ImportError:
-    from app.main import app
+from app.main import app
+
+application = app
+handler = app
