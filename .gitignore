@@ -1,0 +1,64 @@
+# Environment variables (contains private keys and secrets)
+.env
+.env.local
+.env.*.local
+*.env
+
+# Dependencies
+node_modules/
+frontend/node_modules/
+venv/
+backend/venv/
+backend/.venv/
+env/
+.env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/__pycache__/
+*.pyc
+
+# Next.js / Frontend Builds
+.next/
+frontend/.next/
+out/
+frontend/out/
+build/
+dist/
+*.tsbuildinfo
+
+# SQLite Database
+*.db
+*.sqlite
+*.sqlite3
+spotify.db
+
+# Downloaded Media & Audio Storage
+storage/downloads/*
+storage/artwork/*
+storage/*.m4a
+storage/*.mp3
+storage/*.webm
+storage/*.wav
+storage/*.ogg
+!storage/.gitkeep
+
+# Logs & Temporary Files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+playlist_meta.json
+sample_track_item.json
+
+# OS & IDE Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

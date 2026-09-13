@@ -1,0 +1,300 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #000000;
+  --surface: #121212;
+  --surface-card: rgba(255, 255, 255, 0.035);
+  --accent: #1ED760;
+  --accent-secondary: #1DB954;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: #000000;
+  color: rgba(255, 255, 255, 0.95);
+  overflow-x: hidden;
+  user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Minimalist Dark Scrollbars (Requirement 18) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* iOS Glassmorphism Utilities (Requirements 3 & 15) */
+.glass-surface {
+  background: rgba(18, 18, 18, 0.65);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.40);
+}
+
+.glass-surface-primary {
+  background: rgba(20, 20, 20, 0.60);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.glass-surface-subtle {
+  background: rgba(16, 16, 16, 0.65);
+  backdrop-filter: blur(24px) saturate(140%);
+  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.35);
+}
+
+/* High-Performance Obsidian Panel (Zero-overhead 120 FPS scrolling container) */
+.obsidian-panel {
+  position: relative;
+  background: #090909;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid rgba(255, 255, 255, 0.20);
+  box-shadow:
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1.5px 3px 0 rgba(0, 0, 0, 0.85),
+    0 24px 60px -12px rgba(0, 0, 0, 0.85);
+  transform: translateZ(0);
+}
+
+/* Liquid Glossy Glass System with Watery Hover Effects (GPU Accelerated) */
+.liquid-glass {
+  position: relative;
+  background: radial-gradient(
+    130% 120% at 50% 0%,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(18, 18, 18, 0.65) 45%,
+    rgba(8, 8, 8, 0.85) 100%
+  );
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-top: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow:
+    /* Liquid curved meniscus reflection on top */
+    inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1.5px 3px 0 rgba(0, 0, 0, 0.85),
+    inset 1px 0 2px 0 rgba(255, 255, 255, 0.05),
+    inset -1px 0 2px 0 rgba(255, 255, 255, 0.03),
+    0 20px 50px -10px rgba(0, 0, 0, 0.85);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+  overflow: hidden;
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Fluid Water Ripple & Caustic Wave Sheen (GPU Composited) */
+.liquid-glass::after {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background: linear-gradient(
+    118deg,
+    transparent 32%,
+    rgba(255, 255, 255, 0.015) 42%,
+    rgba(255, 255, 255, 0.08) 48%,
+    rgba(30, 215, 96, 0.05) 50%,
+    rgba(255, 255, 255, 0.07) 53%,
+    rgba(255, 255, 255, 0.015) 59%,
+    transparent 68%
+  );
+  transform: translate3d(-35%, -35%, 0) rotate(0deg);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  transition: opacity 0.3s ease;
+  will-change: transform, opacity;
+}
+
+/* Hover State: Water Sheen, Meniscus Brightening, Subtle Emerald Caustic */
+.liquid-glass:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  border-top-color: rgba(255, 255, 255, 0.38);
+  box-shadow:
+    inset 0 2px 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 4px 0 rgba(0, 0, 0, 0.9),
+    inset 1.5px 0 2px 0 rgba(255, 255, 255, 0.09),
+    inset -1.5px 0 2px 0 rgba(255, 255, 255, 0.06),
+    0 25px 60px -10px rgba(0, 0, 0, 0.9),
+    0 0 35px -5px rgba(30, 215, 96, 0.08);
+}
+
+.liquid-glass:hover::after {
+  opacity: 1;
+  animation: liquid-water-wave 2.8s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+@keyframes liquid-water-wave {
+  0% {
+    transform: translate3d(-35%, -35%, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(8%, 8%, 0) rotate(3deg);
+  }
+  100% {
+    transform: translate3d(-35%, -35%, 0) rotate(0deg);
+  }
+}
+
+/* 120 FPS Tactile Button & Click Feedback */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active:not(:disabled),
+a:active,
+[role="button"]:active {
+  transform: scale(0.96) translateZ(0) !important;
+  transition: transform 0.06s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Hardware Composited Native Scrolling (120 FPS High-Refresh) */
+.hardware-scroller {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  will-change: scroll-position;
+  overscroll-behavior: contain;
+}
+
+.glass-specular {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.015) 100%
+  );
+}
+
+.glass-player {
+  background: rgba(18, 18, 18, 0.75);
+  backdrop-filter: blur(28px) saturate(150%);
+  -webkit-backdrop-filter: blur(28px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 15px 60px rgba(0, 0, 0, 0.55);
+}
+
+.glass-modal {
+  background: rgba(18, 18, 18, 0.90);
+  backdrop-filter: blur(30px) saturate(150%);
+  -webkit-backdrop-filter: blur(30px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.65);
+}
+
+/* Strict Shared Track Table Grid Layout (Desktop & Laptop >= 768px) */
+@media (min-width: 768px) {
+  .track-table-grid {
+    display: grid;
+    grid-template-columns: 28px 36px minmax(200px, 3fr) minmax(130px, 2fr) minmax(120px, 1.8fr) 64px 135px 72px;
+    gap: 12px;
+    align-items: center;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1100px) {
+  .track-table-grid {
+    grid-template-columns: 28px 36px minmax(180px, 3fr) minmax(130px, 2fr) 64px 125px 72px;
+  }
+}
+
+/* Green ambient glow classes (Requirement 29) */
+.glow-emerald-subtle {
+  box-shadow: 0 0 30px rgba(30, 215, 96, 0.12);
+}
+
+.glow-emerald-btn {
+  box-shadow: 0 0 20px rgba(30, 215, 96, 0.35);
+}
+
+/* Premium Range Sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.15);
+  height: 4px;
+  border-radius: 9999px;
+  cursor: pointer;
+  outline: none;
+  transition: height 0.15s ease;
+}
+
+input[type="range"]:hover {
+  height: 5px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  cursor: pointer;
+}
+
+.group:hover input[type="range"]::-webkit-slider-thumb,
+input[type="range"]:active::-webkit-slider-thumb {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* Mobile Safe Areas & Touch Target Ergonomics */
+.touch-target-44 {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.safe-pb {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 12px);
+}
+
+.safe-pt {
+  padding-top: max(env(safe-area-inset-top, 0px), 12px);
+}
+
+/* Reduced Motion support (Requirement 31) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
