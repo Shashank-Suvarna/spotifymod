@@ -4,6 +4,12 @@ from pydantic_settings import BaseSettings
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+# Detect if running on Vercel serverless or read-only cloud environment
+IS_VERCEL = bool(os.environ.get("VERCEL") or os.environ.get("VERCEL_ENV") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+
+default_db = "sqlite+aiosqlite:////tmp/spotify.db" if IS_VERCEL else "sqlite+aiosqlite:///./spotify.db"
+default_storage = "/tmp/storage" if IS_VERCEL else str(BASE_DIR / "storage")
+
 class Settings(BaseSettings):
     # App
     APP_NAME: str = "AuraStream - Spotify Offline Player"
@@ -22,13 +28,13 @@ class Settings(BaseSettings):
     )
 
     # Database: Async SQLite default with Postgres support
-    DATABASE_URL: str = "sqlite+aiosqlite:///./spotify.db"
+    DATABASE_URL: str = default_db
     
     # Redis (optional for local, used when configured)
     REDIS_URL: str = "redis://localhost:6379/0"
     
     # Storage
-    STORAGE_PATH: str = str(BASE_DIR / "storage")
+    STORAGE_PATH: str = default_storage
     STORAGE_BACKEND: str = "local"  # "local" or "s3"
     
     # S3 (optional)
@@ -47,7 +53,12 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Ensure local storage directory exists
-os.makedirs(settings.STORAGE_PATH, exist_ok=True)
-os.makedirs(os.path.join(settings.STORAGE_PATH, "downloads"), exist_ok=True)
-os.makedirs(os.path.join(settings.STORAGE_PATH, "artwork"), exist_ok=True)
+# Ensure storage directories exist safely (preventing read-only container crashes)
+try:
+    os.makedirs(settings.STORAGE_PATH, exist_ok=True)
+    os.makedirs(os.path.join(settings.STORAGE_PATH, "downloads"), exist_ok=True)
+    os.makedirs(os.path.join(settings.STORAGE_PATH, "artwork"), exist_ok=True)
+except Exception as e:
+    import logging
+    logging.warning(f"Could not create storage directories at {settings.STORAGE_PATH}: {e}")
+

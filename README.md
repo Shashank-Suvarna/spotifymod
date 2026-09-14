@@ -2,6 +2,9 @@
 
 A high-performance, full-stack engineering study project inspired by Spotify's design system, featuring an **independent per-track download queue engine**, real-time WebSockets, Spotify OAuth 2.0, storage abstraction, ID3v2 metadata embedding, and a persistent offline music player.
 
+> 🤖 **AI AGENT / DEVELOPER QUICK REFERENCE:**
+> For the complete system architecture, database ERD, API catalog, WebSocket specifications, and module index, consult [ARCHITECTURE.md](file:///c:/Users/shash/OneDrive/Desktop/spotify/ARCHITECTURE.md). It is structured specifically so AI models and developers can get complete system context without scanning individual files.
+
 ---
 
 ## Core Requirement: Independent Per-Track Job Architecture

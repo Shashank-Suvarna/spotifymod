@@ -285,18 +285,22 @@ class SpotifyService:
     def parse_playlist_id(self, input_str: str) -> Tuple[str, str]:
         """Extracts playlist/album ID and entity type from URL, URI, or plain ID."""
         input_str = input_str.strip()
-        match = re.search(r"(?:playlist|album)[/:]([a-zA-Z0-9]{15,30})", input_str)
+        # Strip query parameters if plain string
+        match = re.search(r"(?:playlist|album)[/:]([a-zA-Z0-9]{15,35})", input_str)
         entity_type = "album" if "album" in input_str else "playlist"
         if match:
             return match.group(1), entity_type
         
-        if re.match(r"^[a-zA-Z0-9]{15,30}$", input_str):
-            return input_str, "playlist"
+        # Remove query parameters if present
+        clean_id = input_str.split("?")[0].split("/")[-1].strip()
+
+        if re.match(r"^[a-zA-Z0-9]{15,35}$", clean_id):
+            return clean_id, "playlist"
 
         if "500" in input_str or "demo" in input_str.lower() or "mega" in input_str.lower():
             return "demo_500_track_mega_playlist", "playlist"
 
-        return input_str, "playlist"
+        return clean_id if clean_id else input_str, "playlist"
 
     async def fetch_from_spotify_embed(
         self,
