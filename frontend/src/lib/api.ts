@@ -167,23 +167,52 @@ export const api = {
     }
   },
   getPlaylist: async (id: string) => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = sessionStorage.getItem(`pl_${id}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.tracks && parsed.tracks.length > 0) {
+            return parsed;
+          }
+        }
+      } catch {}
+    }
     try {
-      return await fetchJson<Playlist>(`/api/playlists/${id}`);
+      const pl = await fetchJson<Playlist>(`/api/playlists/${id}`);
+      if (typeof window !== "undefined" && pl) {
+        try { sessionStorage.setItem(`pl_${id}`, JSON.stringify(pl)); } catch {}
+      }
+      return pl;
     } catch (err) {
       console.warn("Backend getPlaylist failed, using client fallback for:", id);
-      return await fallbackClientImport(id);
+      const fallback = await fallbackClientImport(id);
+      if (typeof window !== "undefined" && fallback) {
+        try { sessionStorage.setItem(`pl_${id}`, JSON.stringify(fallback)); } catch {}
+      }
+      return fallback;
     }
   },
   importPlaylist: async (urlOrId: string) => {
+    let result: Playlist;
     try {
-      return await fetchJson<Playlist>("/api/playlists/import", {
+      result = await fetchJson<Playlist>("/api/playlists/import", {
         method: "POST",
         body: JSON.stringify({ url_or_id: urlOrId }),
       });
     } catch (err) {
       console.warn("Backend import failed, using client fallback for:", urlOrId, err);
-      return await fallbackClientImport(urlOrId);
+      result = await fallbackClientImport(urlOrId);
     }
+    if (typeof window !== "undefined" && result) {
+      try {
+        sessionStorage.setItem(`pl_${result.id}`, JSON.stringify(result));
+        if (result.spotify_id) {
+          sessionStorage.setItem(`pl_${result.spotify_id}`, JSON.stringify(result));
+        }
+      } catch {}
+    }
+    return result;
   },
   enqueuePlaylist: async (playlistId: string, trackIds?: string[]) => {
     try {
