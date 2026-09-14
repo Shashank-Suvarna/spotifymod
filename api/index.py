@@ -12,3 +12,9 @@ try:
     from backend.app.main import app
 except ImportError:
     from app.main import app
+
+try:
+    from mangum import Mangum
+    handler = Mangum(app, lifespan="off")
+except Exception:
+    handler = app
