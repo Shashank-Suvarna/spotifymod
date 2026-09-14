@@ -10,16 +10,33 @@ import {
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
 async function fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${endpoint}`, {
+  let res = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...options?.headers,
     },
-  });
-  if (!res.ok) {
-    const errData = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(errData.detail || `Request failed with status ${res.status}`);
+  }).catch(() => null);
+
+  // If 404 on Vercel subfolder deployment, automatically retry with /frontend prefix
+  if ((!res || res.status === 404) && !endpoint.startsWith("/frontend")) {
+    const retryRes = await fetch(`${API_BASE}/frontend${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+    }).catch(() => null);
+    if (retryRes && retryRes.ok) {
+      res = retryRes;
+    }
+  }
+
+  if (!res || !res.ok) {
+    const errData = res
+      ? await res.json().catch(() => ({ detail: res?.statusText || "Error" }))
+      : { detail: "Network request failed" };
+    throw new Error(errData.detail || `Request failed with status ${res?.status || 500}`);
   }
   return res.json();
 }
