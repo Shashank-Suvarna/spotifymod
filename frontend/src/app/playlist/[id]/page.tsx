@@ -248,15 +248,17 @@ export default function PlaylistPage({
   // Virtualization window calculations with exact table offset
   const totalCount = filteredTracks.length;
   const totalHeight = totalCount * ROW_HEIGHT;
+
+  // For lists under 1000 items, render all tracks directly to guarantee 100% full list visibility & seamless scrolling
+  const isVirtualized = totalCount > 1000;
   const effectiveScrollTop = Math.max(0, scrollTop - tableOffsetTop);
-  const startIndex = Math.max(
-    0,
-    Math.floor(effectiveScrollTop / ROW_HEIGHT) - OVERSCAN
-  );
-  const endIndex = Math.min(
-    totalCount,
-    Math.ceil((effectiveScrollTop + containerHeight) / ROW_HEIGHT) + OVERSCAN
-  );
+  const startIndex = isVirtualized
+    ? Math.max(0, Math.floor(effectiveScrollTop / ROW_HEIGHT) - OVERSCAN)
+    : 0;
+  const endIndex = isVirtualized
+    ? Math.min(totalCount, Math.ceil((effectiveScrollTop + containerHeight) / ROW_HEIGHT) + OVERSCAN)
+    : totalCount;
+
   const visibleTracks = filteredTracks.slice(startIndex, endIndex);
 
   // Bulk Enqueue (Requirement 8: creates 587 independent jobs)
