@@ -42,8 +42,12 @@ export function PastePlaylistModal({ isOpen, onClose }: ModalProps) {
 
     try {
       const pl = await api.importPlaylist(inputUrl.trim());
-      setImportedPlaylist(pl);
-      setSuccessMessage(`Found ${pl.total_tracks} tracks in "${pl.title}"`);
+      if (pl && pl.tracks && pl.tracks.length > 0) {
+        setImportedPlaylist(pl);
+        setSuccessMessage(`Found ${pl.total_tracks} tracks in "${pl.title}"`);
+      } else {
+        throw new Error("Unable to parse tracks for this playlist URL.");
+      }
     } catch (e: any) {
       setError(e.message || "Failed to parse Spotify playlist URL");
     } finally {
