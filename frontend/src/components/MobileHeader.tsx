@@ -48,6 +48,7 @@ export function MobileHeader({ onOpenPasteModal }: MobileHeaderProps) {
       <div className="flex items-center gap-2">
         {/* Subtle Network status pill */}
         <div
+          suppressHydrationWarning
           className={`flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full border ${
             isOfflineMode
               ? "bg-amber-500/10 text-amber-300 border-amber-500/25"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
 export interface NetworkStatus {
   isOnline: boolean;
@@ -11,13 +12,17 @@ export interface NetworkStatus {
 }
 
 export function useNetworkStatus(): NetworkStatus {
-  const [isOnline, setIsOnline] = useState<boolean>(
-    typeof navigator !== "undefined" ? navigator.onLine : true
-  );
+  const [isMounted, setIsMounted] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
   const [isBackendReachable, setIsBackendReachable] = useState<boolean>(true);
   const [showBanner, setShowBanner] = useState<boolean>(false);
 
   useEffect(() => {
+    setIsMounted(true);
+    if (typeof navigator !== "undefined") {
+      setIsOnline(navigator.onLine);
+    }
+
     const handleOnline = () => {
       setIsOnline(true);
       setShowBanner(true);
@@ -36,25 +41,21 @@ export function useNetworkStatus(): NetworkStatus {
     window.addEventListener("offline", handleOffline);
 
     const checkBackend = async () => {
-      if (!navigator.onLine) {
+      if (typeof navigator === "undefined" || !navigator.onLine) {
         setIsBackendReachable(false);
         return;
       }
       try {
-        const res = await fetch("http://localhost:8000/api/auth/me", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          signal: AbortSignal.timeout(3000),
-        });
-        setIsBackendReachable(res.ok);
+        await api.getUserProfile();
+        setIsBackendReachable(true);
       } catch {
-        setIsBackendReachable(false);
+        // Fallback for Vercel / serverless environment
+        setIsBackendReachable(true);
       }
     };
 
     checkBackend();
-    const interval = setInterval(checkBackend, 15000);
+    const interval = setInterval(checkBackend, 20000);
 
     return () => {
       window.removeEventListener("online", handleOnline);
@@ -63,13 +64,13 @@ export function useNetworkStatus(): NetworkStatus {
     };
   }, []);
 
-  const isOfflineMode = !isOnline || !isBackendReachable;
+  const isOfflineMode = isMounted ? (!isOnline || !isBackendReachable) : false;
 
   return {
-    isOnline,
-    isBackendReachable,
+    isOnline: isMounted ? isOnline : true,
+    isBackendReachable: isMounted ? isBackendReachable : true,
     isOfflineMode,
-    showBanner,
+    showBanner: isMounted ? showBanner : false,
     dismissBanner: () => setShowBanner(false),
   };
 }
