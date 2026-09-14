@@ -8,12 +8,24 @@ import httpx
 import logging
 import asyncio
 from typing import Optional, Callable, Tuple, Dict
-import yt_dlp
-from mutagen.mp3 import MP3
-from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, APIC, TCON, COMM
-from mutagen.mp4 import MP4, MP4Cover
-from backend.app.config import settings
-from backend.app.storage import get_storage
+try:
+    import yt_dlp
+except ImportError:
+    yt_dlp = None
+
+try:
+    from mutagen.mp3 import MP3
+    from mutagen.id3 import ID3, TIT2, TPE1, TALB, TRCK, APIC, TCON, COMM
+    from mutagen.mp4 import MP4, MP4Cover
+except ImportError:
+    MP3 = None
+
+try:
+    from backend.app.config import settings
+    from backend.app.storage import get_storage
+except ImportError:
+    from app.config import settings
+    from app.storage import get_storage
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +80,8 @@ class AudioService:
         loop = asyncio.get_event_loop()
 
         def resolve():
+            if yt_dlp is None:
+                return None
             try:
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     info = ydl.extract_info(query, download=False)
@@ -107,7 +121,7 @@ class AudioService:
         artwork_bytes: Optional[bytes] = None
     ):
         """Injects metadata tags and cover art into .mp3 or .m4a audio file."""
-        if not os.path.isfile(file_path):
+        if not os.path.isfile(file_path) or MP3 is None:
             return
 
         if file_path.endswith(".m4a") or file_path.endswith(".mp4"):

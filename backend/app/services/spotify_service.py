@@ -6,10 +6,20 @@ import logging
 import base64
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
-import pyotp
-import requests
+try:
+    import pyotp
+except ImportError:
+    pyotp = None
 
-from backend.app.config import settings
+try:
+    import requests
+except ImportError:
+    requests = None
+
+try:
+    from backend.app.config import settings
+except ImportError:
+    from app.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +35,8 @@ class SpotifyService:
 
     def generate_spotify_totp(self) -> Tuple[Optional[str], Optional[str]]:
         """Generates dynamic TOTP token for Spotify web client authentication."""
+        if pyotp is None or requests is None:
+            return None, None
         try:
             url = 'https://code.thetadev.de/ThetaDev/spotify-secrets/raw/branch/main/secrets/secretDict.json'
             r = requests.get(url, timeout=5)
