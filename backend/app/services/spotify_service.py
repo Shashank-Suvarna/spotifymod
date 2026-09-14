@@ -60,7 +60,7 @@ class SpotifyService:
         params = {'reason': 'init', 'productType': 'web-player', 'totp': totp, 'totpVer': ver, 'totpServer': totp}
 
         try:
-            async with httpx.AsyncClient(headers=headers, timeout=20.0) as client:
+            async with httpx.AsyncClient(headers=headers, timeout=6.0) as client:
                 # 1. Get access token
                 token_resp = await client.get('https://open.spotify.com/api/token', params=params)
                 if token_resp.status_code != 200:
@@ -107,8 +107,10 @@ class SpotifyService:
                 offset = 0
                 limit = 100
                 total_count = None
+                pages_fetched = 0
 
-                while True:
+                while pages_fetched < 2:
+                    pages_fetched += 1
                     query_params = {
                         'operationName': 'queryPlaylist',
                         'variables': json.dumps({'uri': f'spotify:playlist:{playlist_id}', 'offset': offset, 'limit': limit}),

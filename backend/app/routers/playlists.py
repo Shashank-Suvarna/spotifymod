@@ -164,17 +164,25 @@ async def import_playlist_url(payload: PastePlaylistRequest, db: AsyncSession = 
             playlist.total_tracks = len(track_items)
             playlist.total_duration_ms = sum(t.get("duration_ms", 180000) for t in track_items)
 
-        # Clean existing tracks assoc for this playlist if updating
+        # Delete old associations for this playlist
         await db.execute(delete(PlaylistTrack).where(PlaylistTrack.playlist_id == playlist.id))
 
-        # Process and link tracks
-        saved_tracks = []
+        # BULK OPTIMIZATION: 1. Fetch all existing tracks matching spotify_ids in ONE query
+        spot_ids = [t["spotify_id"] for t in track_items if t.get("spotify_id")]
+        existing_tracks_map = {}
+        if spot_ids:
+            t_stmt = select(Track).where(Track.spotify_id.in_(spot_ids))
+            t_res = await db.execute(t_stmt)
+            for et in t_res.scalars().all():
+                if et.spotify_id:
+                    existing_tracks_map[et.spotify_id] = et
+
+        new_tracks = []
+        track_objects_ordered = []
+
         for idx, t_meta in enumerate(track_items):
             spot_id = t_meta.get("spotify_id")
-            t_obj = None
-            if spot_id:
-                t_res = await db.execute(select(Track).where(Track.spotify_id == spot_id))
-                t_obj = t_res.scalars().first()
+            t_obj = existing_tracks_map.get(spot_id) if spot_id else None
 
             if not t_obj:
                 t_obj = Track(
@@ -188,17 +196,26 @@ async def import_playlist_url(payload: PastePlaylistRequest, db: AsyncSession = 
                     preview_url=t_meta.get("preview_url"),
                     track_number=idx + 1
                 )
-                db.add(t_obj)
-                await db.flush()
+                new_tracks.append(t_obj)
+                if spot_id:
+                    existing_tracks_map[spot_id] = t_obj
 
-            # Link in playlist_tracks
-            pt = PlaylistTrack(
+            track_objects_ordered.append(t_obj)
+
+        if new_tracks:
+            db.add_all(new_tracks)
+            await db.flush()
+
+        # Link all tracks to playlist in ONE bulk operation
+        pt_objects = [
+            PlaylistTrack(
                 playlist_id=playlist.id,
                 track_id=t_obj.id,
                 order_index=idx
             )
-            db.add(pt)
-            saved_tracks.append(t_obj)
+            for idx, t_obj in enumerate(track_objects_ordered)
+        ]
+        db.add_all(pt_objects)
 
         await db.commit()
         await db.refresh(playlist)
@@ -208,7 +225,7 @@ async def import_playlist_url(payload: PastePlaylistRequest, db: AsyncSession = 
             await ws_manager.broadcast("PLAYLIST_IMPORTED", {
                 "playlist_id": playlist.id,
                 "title": playlist.title,
-                "track_count": len(saved_tracks)
+                "track_count": len(track_objects_ordered)
             })
         except Exception as ws_err:
             logger.warning(f"WebSocket broadcast failed (ignoring in serverless): {ws_err}")
@@ -218,16 +235,6 @@ async def import_playlist_url(payload: PastePlaylistRequest, db: AsyncSession = 
         raise
     except Exception as e:
         logger.exception(f"Failed to import playlist: {e}")
-        # Try returning mock playlist as emergency fallback if DB creation succeeded
-        try:
-            p_info, track_items = spotify_service._generate_mock_playlist(playlist_id_str)
-            p_stmt = select(Playlist).where(Playlist.spotify_id == playlist_id_str)
-            p_res = await db.execute(p_stmt)
-            p_fallback = p_res.scalars().first()
-            if p_fallback:
-                return await get_playlist_details(p_fallback.id, db)
-        except Exception:
-            pass
         raise HTTPException(status_code=500, detail=f"Failed to import playlist: {str(e)}")
 
 @router.post("/{playlist_id}/enqueue")
